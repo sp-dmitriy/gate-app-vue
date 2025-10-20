@@ -23,9 +23,9 @@
 import { computed } from 'vue'
 const props = defineProps({
   item: {
-    type: Array,
+    type: Object,
     required: true,
-    default: () => []
+    default: () => {}
   }
 })
 const statusBg = computed(() => props.item.status ? 'bg-green-500' : 'bg-red-500')
