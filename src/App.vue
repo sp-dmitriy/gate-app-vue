@@ -99,17 +99,63 @@ const handleGateToggle = async (val) => {
   }
 }
 
-const getStatusServer = async () => {
-  try {
-    const { data } = await StatusService.getStatusServer()
-    const serverItem = items.find(item => item.type === ITEM_TYPES.SERVER)
-    if (serverItem) {
-      serverItem.status = data.code
+const getStatusServer = () => {
+  const MAX_RETRIES = 10
+  const RETRY_DELAY = 5000
+  
+  const retries = ref(0)
+  const isPolling = ref(false)
+  
+  const pollStatus = async () => {
+    if (isPolling.value) return
+    
+    isPolling.value = true
+    
+    try {
+      const { data } = await StatusService.getStatusServer()
+      const serverItem = items.find(item => item.type === ITEM_TYPES.SERVER)
+      
+      if (serverItem) {
+        serverItem.status = data.code
+      }
+      
+      // Если код не равен 0, продолжаем опрос
+      if (data.code !== 0 && retries.value < MAX_RETRIES) {
+        retries.value++
+        console.log(`Повторный опрос через 5 сек (попытка ${retries.value}/${MAX_RETRIES})`)
+        
+        setTimeout(() => {
+          isPolling.value = false
+          pollStatus()
+        }, RETRY_DELAY)
+      } else {
+        isPolling.value = false
+        if (retries.value >= MAX_RETRIES) {
+          console.log('Достигнуто максимальное количество попыток')
+        }
+      }
+      
+      return data.code
+      
+    } catch (err) {
+      console.error('Server status error:', err)
+      
+      if (retries.value < MAX_RETRIES) {
+        retries.value++
+        console.log(`Ошибка, повторный опрос через 5 сек (попытка ${retries.value}/${MAX_RETRIES})`)
+        
+        setTimeout(() => {
+          isPolling.value = false
+          pollStatus()
+        }, RETRY_DELAY)
+      } else {
+        isPolling.value = false
+        throw err
+      }
     }
-  } catch (err) {
-    console.error('Server status error:', err)
-    throw err
   }
+  
+  return pollStatus()
 }
 
 const getStatusNode = async () => {
