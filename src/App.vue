@@ -86,14 +86,11 @@ const handleGateToggle = async (val) => {
     isButtonDisabed.value = true
     if (val) {
       const { data } = await GateService.openGate()
-      console.log(data.status)
-      isGateOpen.value = !!data.status
+      isGateOpen.value = true
     } else {
       const { data } = await GateService.closeGate()
-      console.log(data.status)
-      isGateOpen.value = !!data.status
+      isGateOpen.value = false
     }
-
   } catch (err) {
     error.value = `Ошибка при ${isGateOpen.value ? 'открытии' : 'закрытии'} ворот: ${err.message}`
     console.error('Gate operation error:', err)
@@ -128,26 +125,9 @@ const getStatusNode = async () => {
   }
 }
 
-const updateAllStatuses = async () => {
-  error.value = null
-  try {
-    isLoading.value = true
-    await Promise.all([
-      getStatusServer(),
-      getStatusNode()
-    ])
-  } catch (err) {
-    error.value = 'Ошибка при получении статусов'
-    console.error('Status update error:', err)
-  } finally {
-    isLoading.value = false
-  }
-}
 
 onMounted(async() => {
-  await updateAllStatuses()
-  if(items[0].status === 0) {
-    console.log('wwww')
-  }
+  await getStatusServer()
+  await getStatusNode()
 })
 </script>
